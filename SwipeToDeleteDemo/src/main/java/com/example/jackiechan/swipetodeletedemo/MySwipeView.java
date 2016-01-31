@@ -113,15 +113,16 @@ public class MySwipeView extends FrameLayout {
                     //抬起起来
                 int upX = (int) event.getX();
                 int upY = (int) event.getY();
-                if (upX == clickX && upY == clickY) {//如果按下去的 x y 和抬起的时候的x y 一致 则代表是点击事件
+//                if (upX == clickX && upY == clickY) {//如果按下去的 x y 和抬起的时候的x y 一致 则代表是点击事件,实际应该有偏差
+                    if (Math.abs(upX-clickX)<=10&&Math.abs(upY-clickY)<=10) {
                     //在这里要执行点击事件,执行谁的点击事件,执行 listview 的 item 点击事件
                     if (swipeState == SwipeState.Closed) {//如果是关闭状态就执行点击事件
                         AdapterView.OnItemClickListener onItemClickListener = listView.getOnItemClickListener();//获取设置的 onitem 点击事件
                         if (onItemClickListener != null) {
                             int position = (int) getTag(getId());
-                            onItemClickListener.onItemClick(listView,this,position,position);
+                            onItemClickListener.onItemClick(listView, this, position, position);
                         }
-                    } else{//否则就关闭自己
+                    } else {//否则就关闭自己
                         close();
                     }
 
