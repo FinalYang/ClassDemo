@@ -1,34 +1,65 @@
 package com.qianfeng.rxandroiddemo1;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.Button;
 
+import com.google.gson.Gson;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Response;
 import rx.Observable;
 import rx.Observer;
 import rx.Subscriber;
+import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * RxAndroid 简单试讲第一天
  * 本质是基于观察者模式的
  * 观察者,被观察者, 订阅的方式建立联系
+ * RxAndroid不是万能的,不是什么地方都适合用,只是可以减少接口回调等影响耦合性的代码?
+ * RxAndroid异步的时候用
  */
-public class MainActivity extends AppCompatActivity {
-
+public class MainActivity extends AppCompatActivity implements Action1<MyBaseJson> {
+    private final String URL1 = "http://api.meitianapp.com/api/v1/articles?filter=isHomepage&start=%d&limit=20";
     private Button bt1;
-
+   //agera
+    //EventBus 其实也是事件订阅,和RxAndroid 很像 ,基于观察者模式
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         bt1 = (Button) findViewById(R.id.bt1);
+        //observeOn(AndroidSchedulers.mainThread())  在主线程中执行
+//        HttpUtils.jsonRequest(URL1, MeiTianBean.class).observeOn(AndroidSchedulers.mainThread()).subscribe(this);
+        //subscribeOn  改变的是订阅的线程 ,既call方法的线程
+        //observeOn 改变的是发送线程 ,就是 onnext方法的线程
+        //怎么在A 线程中执行B 线程的方法
+        //参考下 handler的切换原理---> Looper---->创建 handler时候--> looper---->threadlocal
+        HttpUtils.threadMethod().subscribeOn(Schedulers.newThread()).observeOn(AndroidSchedulers.mainThread()).subscribe(new Action1<String>() {
+            @Override
+            public void call(String s) {
+                Log.e("自定义标签", "类名==MainActivity()" + "方法名==call()=="+Thread.currentThread().getName());
+            }
+        });
+        //  httpGetMethod2();
+        //   httpGetMethod1();
+        // HttpUtils.getData(URL1,new MyCallBack(MeiTianBean.class,mHandler));
+        //httpGetMethod3();
+
+
 //        bt1.setOnClickListener(new View.OnClickListener() {
 //            @Override
 //            public void onClick(View v) {
@@ -51,6 +82,63 @@ public class MainActivity extends AppCompatActivity {
 //        flatMapIterable();
 //        map();
 //        cast();
+    }
+
+    private void httpGetMethod3() {
+        HttpUtils.jsonRequest(URL1, MeiTianBean.class).cast(MeiTianBean.class).subscribe(new Action1<MeiTianBean>() {
+            @Override
+            public void call(MeiTianBean meiTianBean) {
+                Log.e("自定义标签", "类名==MainActivity" + "方法名==call=====:" + meiTianBean.getNext());
+            }
+        });
+    }
+
+    private void httpGetMethod2() {
+        HttpUtils.jsonRequest(URL1, MeiTianBean.class).subscribe(new Action1<MyBaseJson>() {
+            @Override
+            public void call(MyBaseJson myBaseJson) {
+                Log.e("自定义标签", "类名==MainActivity" + "方法名==call=====:" + "方法被调用了");
+                if (myBaseJson instanceof MeiTianBean) {
+
+                    int next = ((MeiTianBean) myBaseJson).getNext();
+                    Log.e("自定义标签", "类名==MainActivity" + "方法名==call=====:" + next);
+                }
+            }
+        });
+    }
+
+    private Handler mHandler = new Handler() {
+
+
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+
+                case 99:
+                    MeiTianBean meiTianBean = (MeiTianBean) msg.obj;
+                    Log.e("自定义标签", "类名==MainActivity" + "方法名==handleMessage=====getStatus:" + meiTianBean.getStatus());
+
+                    break;
+
+            }
+        }
+    };
+
+
+    private void httpGetMethod1() {
+        HttpUtils.getData(URL1, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                String string = response.body().string();
+                Log.e("自定义标签", "类名==MainActivity" + "方法名==onResponse=====:" + string);
+                MeiTianBean meiTianBean = new Gson().fromJson(string, MeiTianBean.class);
+            }
+        });
     }
 
     private void cast() {//直接类型的转换,和 map 的区别是, map是通过某种方式将一种类型转成另外一种类型,而 cast则是通过 java
@@ -230,5 +318,19 @@ public class MainActivity extends AppCompatActivity {
                 Log.e("自定义标签", "onNext() called with: " + "o = [" + o + "]");
             }
         });
+    }
+
+    @Override
+    public void call(MyBaseJson myBaseJson) {
+        if (myBaseJson instanceof MeiTianBean) {
+            Log.e("自定义标签", "类名==MainActivity" + "方法名==call=====:" + Thread.currentThread().getName());
+//             runOnUiThread(new Runnable() {
+//                 @Override
+//                 public void run() {
+//                     bt1.setText(((MeiTianBean) myBaseJson).getNext()+"");
+//                 }
+//             });
+            bt1.setText(((MeiTianBean) myBaseJson).getNext()+"");
+        }
     }
 }
