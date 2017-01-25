@@ -1,10 +1,7 @@
 package com.example.myxuantingviewdemo;
 
 import android.content.Context;
-import android.os.Handler;
-import android.os.Message;
 import android.util.AttributeSet;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ScrollView;
@@ -57,33 +54,46 @@ public class MyScrollView extends ScrollView {
         xuantingquyu.getLayoutParams().height = moveViewHeight;//将移除 view 的高度设置给后面放置区域的控件
     }
 
+//    @Override
+//    public boolean onTouchEvent(MotionEvent ev) {
+//        switch (ev.getAction()) {
+//            case MotionEvent.ACTION_DOWN:
+//                lastY = ev.getY();//将按下去的点设置为上次的点
+//                break;
+//            case MotionEvent.ACTION_MOVE:
+//                currnetY = ev.getY();
+//                moveY = currnetY - lastY;//滑动的距离差,如果是负数代表向上,如果是整数代表乡下
+//                lastY = currnetY;
+//                currentScrollY = getScrollY();//获取 scrollview 当前已经滚动到什么位置
+////                if (onXuanTingScrollListener != null) {
+////                    onXuanTingScrollListener.onXuanting(moveY, currentScrollY);
+////                }
+//                onXuanting(currentScrollY);//调用方法判断是悬停还是回去
+//                break;
+//            case MotionEvent.ACTION_UP:
+//                handler.sendEmptyMessageDelayed(1, 5);
+//                break;
+//
+//        }
+//
+//
+//        return super.onTouchEvent(ev);
+//    }
+
+    /**
+     * 这个方法是滑动变化的监听,可以监听到惯性滑动,用于替代上面的手势和 handler 集合的功能
+     * @param l x轴最新的位置
+     * @param t Y轴最新的位置
+     * @param oldl X轴上次
+     * @param oldt
+     */
     @Override
-    public boolean onTouchEvent(MotionEvent ev) {
-        switch (ev.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                lastY = ev.getY();//将按下去的点设置为上次的点
-                break;
-            case MotionEvent.ACTION_MOVE:
-                currnetY = ev.getY();
-                moveY = currnetY - lastY;//滑动的距离差,如果是负数代表向上,如果是整数代表乡下
-                lastY = currnetY;
-                currentScrollY = getScrollY();//获取 scrollview 当前已经滚动到什么位置
-//                if (onXuanTingScrollListener != null) {
-//                    onXuanTingScrollListener.onXuanting(moveY, currentScrollY);
-//                }
-                onXuanting(currentScrollY);//调用方法判断是悬停还是回去
-                break;
-            case MotionEvent.ACTION_UP:
-                handler.sendEmptyMessageDelayed(1, 5);
-                break;
-
-        }
-
-
-        return super.onTouchEvent(ev);
+    protected void onScrollChanged(int l, int t, int oldl, int oldt) {
+        onXuanting(t);
+        super.onScrollChanged(l, t, oldl, oldt);
     }
 
-    public void onXuanting( int currentMoveY) {
+    public void onXuanting(int currentMoveY) {
         if (currentMoveY> moveViewGetTopHeight&&!isXuanting) {//代表你应该是在悬停区域
             if (moveView.getParent() != null) {
                 ((ViewGroup) moveView.getParent()).removeView(moveView);//从父容器中移除
@@ -103,18 +113,21 @@ public class MyScrollView extends ScrollView {
 
     }
 
-private Handler handler =new Handler(){
-    @Override
-    public void handleMessage(Message msg) {
-        //判断最后一次手指滑动到的位置和当前的位置是否一致,不一致则代表正在惯性滑动
-        int y = getScrollY();
-        if (currentScrollY !=y) {
-            onXuanting(y);//将惯性滚动到的位置传递进去进行判断
-            currentScrollY = y;
-            sendEmptyMessageDelayed(1,5);
-        }
-    }
-};
+//private Handler handler =new Handler(){
+//    @Override
+//    public void handleMessage(Message msg) {
+//        //判断最后一次手指滑动到的位置和当前的位置是否一致,不一致则代表正在惯性滑动
+//        int y = getScrollY();
+//        int top = getChildAt(0).getTop();
+//        Log.e("自定义标签", "类名==MyScrollView" + "方法名==handleMessage=====:" + y + "========" + top);
+//        if (currentScrollY !=y) {
+//            onXuanting(y);//将惯性 滚动到的位置传递进去进行判断
+//            currentScrollY = y;
+//            sendEmptyMessageDelayed(1,2);
+//        }
+//        onXuanting(y);
+//    }
+//};
 
 
 //
