@@ -4,19 +4,20 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.ScrollView;
 
 /**
  * Created by jackiechan on 16/1/13.
- *
- * 使用方式,在 xml 文件中引入这个 scrollview, 在代码中找到控件后,通过scrollView.getViewTreeObserver().addOnGlobalLayoutListener 在方法中,将需要移除的控件, 悬停区域所在的控件,还有原始区域父控件
- * 通过 set 方法设置进来即可
+ * <p>
+ * 使用方式,在 xml 文件中引入这个 scrollview, 在代码中找到控件后,将需要移除的控件, 悬停区域所在的控件,还有原始区域父控件
+ * 通过 setXuantingquyu 方法设置进来即可
  */
 public class MyScrollView extends ScrollView {
-//    private OnXuanTingScrollListener onXuanTingScrollListener;
-    private ViewGroup xuantingquyu,firstParent;
+    //    private OnXuanTingScrollListener onXuanTingScrollListener;
+    private ViewGroup xuantingquyu, firstParent;
     private View moveView;
-    private  int moveViewGetTopHeight;//悬停的控件距离 scrollview 顶部的距离
+    private int moveViewGetTopHeight;//悬停的控件距离 scrollview 顶部的距离
     private boolean isXuanting;//是不是处于悬停
     private int moveViewHeight;//被移除的控件的高度,因为一旦移除后它的父控件内部没有内容了,但是又是包裹内容,会出现移除后控件瞬间移动的情况,需要给父控件设置和它一样高的高度
 //    public void setOnXuanTingScrollListener(OnXuanTingScrollListener onXuanTingScrollListener) {
@@ -40,18 +41,29 @@ public class MyScrollView extends ScrollView {
 
     /**
      * 高度这个 scrollview, 我想要把什么区域从什么地方移除后添加到什么地方
-     * @param xuantingquyu  悬停区域的容器
-     * @param firstParent 原始位置所在的父控件
-     * @param moveView  要移除的 view
+     *
+     * @param xuantingquyu 悬停区域的容器
+     * @param firstParent  原始位置所在的父控件
+     * @param moveView     要移除的 view
      */
-    public void setXuantingquyu(ViewGroup xuantingquyu,ViewGroup firstParent,View moveView) {
+    public void setXuantingquyu(final ViewGroup xuantingquyu, final ViewGroup firstParent, final View moveView) {
         this.xuantingquyu = xuantingquyu;
         this.firstParent = firstParent;
         this.moveView = moveView;
-        moveViewGetTopHeight = firstParent.getTop();// 获取判断多少的时候应该进行悬停的高度
-        moveViewHeight = moveView.getHeight();//获取高度
-        firstParent.getLayoutParams().height = moveViewHeight;//将原始区域的高度设置为移除 view 的高度,防止移除后发生高度变化
-        xuantingquyu.getLayoutParams().height = moveViewHeight;//将移除 view 的高度设置给后面放置区域的控件
+//        moveViewHeight = moveView.getHeight();//获取高度
+//        firstParent.getLayoutParams().height = moveViewHeight;//将原始区域的高度设置为移除 view 的高度,防止移除后发生高度变化
+//        xuantingquyu.getLayoutParams().height = moveViewHeight;//将移除 view 的高度设置给后面放置区域的控件
+
+        moveView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                moveViewGetTopHeight = firstParent.getTop();// 获取判断多少的时候应该进行悬停的高度
+                //摆放完成,给原始区域设置高度
+                firstParent.getLayoutParams().height = moveView.getMeasuredHeight();//将原始区域的高度设置为移除 view 的高度,防止移除后发生高度变化
+                xuantingquyu.getLayoutParams().height = moveView.getMeasuredHeight();//将移除 view 的高度设置给后面放置区域的控件
+                moveView.getViewTreeObserver().removeGlobalOnLayoutListener(this);
+            }
+        });
     }
 
 //    @Override
@@ -82,8 +94,9 @@ public class MyScrollView extends ScrollView {
 
     /**
      * 这个方法是滑动变化的监听,可以监听到惯性滑动,用于替代上面的手势和 handler 集合的功能
-     * @param l x轴最新的位置
-     * @param t Y轴最新的位置
+     *
+     * @param l    x轴最新的位置
+     * @param t    Y轴最新的位置
      * @param oldl X轴上次
      * @param oldt
      */
@@ -94,14 +107,14 @@ public class MyScrollView extends ScrollView {
     }
 
     public void onXuanting(int currentMoveY) {
-        if (currentMoveY> moveViewGetTopHeight&&!isXuanting) {//代表你应该是在悬停区域
+        if (currentMoveY > moveViewGetTopHeight && !isXuanting) {//代表你应该是在悬停区域
             if (moveView.getParent() != null) {
                 ((ViewGroup) moveView.getParent()).removeView(moveView);//从父容器中移除
             }
             xuantingquyu.addView(moveView);//加到悬停区域
             xuantingquyu.setVisibility(View.VISIBLE);//悬停区域显示
             isXuanting = true;//处于悬停状态
-        }else if (currentMoveY<= moveViewGetTopHeight&&isXuanting){//当前应该回到原始区域
+        } else if (currentMoveY <= moveViewGetTopHeight && isXuanting) {//当前应该回到原始区域
             if (moveView.getParent() != null) {
                 ((ViewGroup) moveView.getParent()).removeView(moveView);//先移除 一定要先移除 否则很有可能会抛出异常
             }
